@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-application
+spec:
+  # количество подов
+  # три пода
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      # распределения подов, чтобы они запускались на разных нодах в кластере
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - web-app
+              topologyKey: "kubernetes.io/hostname"
+
+      containers:
+        - name: ццуцуц-цуцу-уцуц
+          #  контейнер с приложением и версию
+          image: уцуц-уцуц-цуцу
+
+          # ограничиваем использование CPU и памяти
+          resources:
+            requests:
+              cpu: "0.2"  # Под резервирует 0.2 
+              memory: "128Mi"  # Память, необходимая для работы
+            limits:
+              cpu: "0.3"  # Максимум CPU, который может использовать контейнер
+              memory: "256Mi"
+
+          # Проверка, для того что бы под не принмал запросы
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10  # 10 сек ожидания
+            periodSeconds: 5  # проверяем каждые 5 секунд
+
+          # проверям, что приложение полностью инициализировалась 
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 6  # ждём 6 сек перед проверками
+            periodSeconds: 5  # проверка каждые 5 секунд 
+            failureThreshold: 6  # После 6 неудачных попыток перезапускаем
+
+      # обновляем по одному поду.
+      strategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: 1  # максимум 1 под не доступен
+          maxSurge: 1  # 4 пода (3 текущих, 1 новый)
